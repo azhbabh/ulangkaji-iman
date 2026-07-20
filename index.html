@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Matematik Iman Syaddad</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <style>
+    body {
+      font-family: 'Comic Sans MS', 'Arial', sans-serif;
+      background-color: #f0fdf4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 25px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      text-align: center;
+      width: 350px;
+    }
+
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      font-weight: bold;
+      color: #15803d;
+      margin-bottom: 15px;
+      background: #dcfce7;
+      padding: 8px 15px;
+      border-radius: 12px;
+    }
+
+    .mode-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 15px;
+    }
+
+    .btn-mode {
+      padding: 15px;
+      font-size: 18px;
+      font-weight: bold;
+      border-radius: 15px;
+      border: none;
+      color: white;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    .btn-mode:hover { transform: scale(1.03); }
+    .btn-minus { background-color: #ef4444; }
+    .btn-plus { background-color: #3b82f6; }
+    .btn-mix { background-color: #8b5cf6; }
+
+    .math-grid {
+      display: grid;
+      grid-template-columns: 60px 80px 80px;
+      font-size: 36px;
+      font-weight: bold;
+      align-items: center;
+      justify-content: center;
+      margin: 20px 0;
+    }
+
+    .header-label {
+      font-size: 18px;
+      color: #888;
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 5px;
+    }
+
+    .strike {
+      text-decoration: line-through;
+      color: #ef4444;
+    }
+
+    .new-num {
+      color: #16a34a;
+      font-size: 28px;
+      position: absolute;
+      top: -25px;
+    }
+
+    .line {
+      grid-column: span 3;
+      border-bottom: 4px solid #333;
+      margin: 10px 0;
+    }
+
+    button.btn-action {
+      background-color: #16a34a;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 18px;
+      font-weight: bold;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+
+    input.input-box {
+      font-size: 28px;
+      width: 120px;
+      text-align: center;
+      padding: 5px;
+      border-radius: 12px;
+      border: 3px solid #16a34a;
+      outline: none;
+    }
+
+    input.name-box {
+      font-size: 18px;
+      width: 80%;
+      text-align: center;
+      padding: 8px;
+      border-radius: 10px;
+      border: 2px solid #8b5cf6;
+      margin-bottom: 10px;
+      font-weight: bold;
+      color: #6b21a8;
+    }
+
+    .result-score {
+      font-size: 55px;
+      font-weight: bold;
+      color: #16a34a;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2 id="title" style="color: #15803d; margin-top: 0;">Detektif Matematik! 🔍</h2>
+    <p id="instruction">Masukkan nama & pilih mod permainan:</p>
+
+    <!-- SKRIN 1: MENU PILIHAN MOD & NAMA -->
+    <div id="mode-menu">
+      <input type="text" id="player-name" class="name-box" value="Iman Syaddad" placeholder="Masukkan Nama">
+      <div class="mode-container">
+        <button class="btn-mode btn-minus" onclick="selectMode('minus')">➖ Mod Tolak Sahaja</button>
+        <button class="btn-mode btn-plus" onclick="selectMode('plus')">➕ Mod Tambah Sahaja</button>
+        <button class="btn-mode btn-mix" onclick="selectMode('mix')">🔀 Mod Campur (Tambah & Tolak)</button>
+      </div>
+    </div>
+
+    <!-- SKRIN 2: PAPAN ANIMASI DEMO -->
+    <div id="demo-section" style="display: none;">
+      <div class="math-grid" id="math-box">
+        <div></div>
+        <div class="header-label">Puluh</div>
+        <div class="header-label">Sa</div>
+
+        <div></div>
+        <div style="position: relative;">
+          <span id="p-new" class="new-num" style="opacity:0; left:25px;">2</span>
+          <span id="num-p3">3</span>
+        </div>
+        <div style="position: relative;">
+          <span id="s-new" class="new-num" style="opacity:0; left:15px;">15</span>
+          <span id="num-s5">5</span>
+        </div>
+
+        <div>-</div>
+        <div>2</div>
+        <div>6</div>
+
+        <div class="line"></div>
+
+        <div></div>
+        <div id="ans-p" style="opacity:0;">0</div>
+        <div id="ans-s" style="opacity:0;">9</div>
+      </div>
+
+      <button id="main-btn" class="btn-action" onclick="startDemo()">Tunjukkan Contoh (35 - 26)</button>
+    </div>
+
+    <!-- SKRIN 3: KUIZ 10 SOALAN -->
+    <div id="quiz-section" style="display: none;">
+      <div class="status-bar">
+        <span id="q-tracker">Soalan: 1/10</span>
+        <span id="score-tracker">Markah: 0</span>
+      </div>
+
+      <p id="quiz-question" style="font-size: 38px; font-weight: bold; color: #333; margin: 15px 0;"></p>
+      <input type="number" id="user-answer" class="input-box" placeholder="?" autofocus>
+      <br>
+      <button class="btn-action" onclick="checkAnswer()">Hantar Jawapan</button>
+      <p id="feedback" style="font-size: 16px; font-weight: bold; min-height: 45px; margin-top: 15px;"></p>
+    </div>
+
+    <!-- SKRIN 4: KEPUTUSAN FINAL -->
+    <div id="result-section" style="display: none;">
+      <div style="font-size: 40px;" id="star-display">⭐⭐⭐</div>
+      <p style="font-size: 18px; color: #555;">MARKAH KESELURUHAN (10 Soalan):</p>
+      <div class="result-score" id="final-percentage">100%</div>
+      <p id="final-msg" style="font-size: 18px; font-weight: bold; color: #15803d;"></p>
+      <button class="btn-action" onclick="goHome()">Tukar Mod / Main Lagi 🔄</button>
+    </div>
+  </div>
+
+  <script>
+    let playerName = "Iman Syaddad";
+    let currentAns = 0;
+    let currentQuestion = 0;
+    let totalQuestions = 10;
+    let score = 0;
+    let selectedMode = 'mix';
+    let currentOperator = '-';
+    let isSpecialCase = false;
+
+    function selectMode(mode) {
+      // Ambil nama dari kotak input
+      let inputName = document.getElementById('player-name').value.trim();
+      if (inputName !== "") {
+        playerName = inputName.toUpperCase(); // Tukar ke huruf besar
+      }
+
+      selectedMode = mode;
+      document.getElementById('mode-menu').style.display = "none";
+      
+      if (mode === 'plus') {
+        showQuiz();
+      } else {
+        document.getElementById('demo-section').style.display = "block";
+      }
+    }
+
+    function startDemo() {
+      const btn = document.getElementById('main-btn');
+      btn.disabled = true;
+      document.getElementById('instruction').innerText = "35 - 26: Nombor 5 kecil dari 6, KENA PINJAM dari Puluh!";
+
+      let tl = gsap.timeline({
+        onComplete: () => {
+          btn.disabled = false;
+          btn.innerText = "Mula Soalan Latihan! 🚀";
+          btn.onclick = showQuiz;
+          document.getElementById('instruction').innerText = `Sedia ${playerName}? Perhatikan SIMBOL (+ atau -) dulu!`;
+        }
+      });
+
+      tl.to("#num-p3", { duration: 0.5, color: "#ef4444" })
+        .to("#num-p3", { duration: 0.3, classList: "strike" })
+        .to("#p-new", { duration: 0.5, opacity: 1, y: 5 })
+        .to("#num-s5", { duration: 0.5, color: "#ef4444" })
+        .to("#num-s5", { duration: 0.3, classList: "strike" })
+        .to("#s-new", { duration: 0.5, opacity: 1, y: 5 })
+        .to("#ans-s", { duration: 0.8, opacity: 1, color: "#16a34a", scale: 1.2 })
+        .to("#ans-s", { duration: 0.2, scale: 1 })
+        .to("#ans-p", { duration: 0.8, opacity: 1, color: "#16a34a", scale: 1.2 })
+        .to("#ans-p", { duration: 0.2, scale: 1 });
+    }
+
+    function showQuiz() {
+      document.getElementById('demo-section').style.display = "none";
+      document.getElementById('mode-menu').style.display = "none";
+      document.getElementById('title').innerText = "Cabaran Matematik";
+      document.getElementById('instruction').style.display = "none";
+      document.getElementById('quiz-section').style.display = "block";
+
+      currentQuestion = 0;
+      score = 0;
+      nextQuestion();
+    }
+
+    function nextQuestion() {
+      if (currentQuestion < totalQuestions) {
+        currentQuestion++;
+        document.getElementById('q-tracker').innerText = `Soalan: ${currentQuestion}/${totalQuestions}`;
+        document.getElementById('score-tracker').innerText = `Markah: ${score * 10}`;
+        document.getElementById('feedback').innerText = '';
+        document.getElementById('user-answer').value = '';
+        document.getElementById('user-answer').focus();
+
+        if (selectedMode === 'plus') currentOperator = '+';
+        else if (selectedMode === 'minus') currentOperator = '-';
+        else currentOperator = Math.random() < 0.5 ? '+' : '-';
+
+        let num1, num2;
+        let p = Math.floor(Math.random() * 4) + 2; 
+
+        if (currentOperator === '+') {
+          isSpecialCase = Math.random() < 0.5; 
+          let s1 = Math.floor(Math.random() * 5) + 3;
+          let s2 = isSpecialCase ? (Math.floor(Math.random() * 4) + 7 - s1) : Math.floor(Math.random() * (9 - s1));
+          
+          num1 = (p * 10) + s1;
+          num2 = (Math.floor(Math.random() * 3) + 1) * 10 + s2;
+          currentAns = num1 + num2;
+        } else {
+          isSpecialCase = Math.random() < 0.5; 
+          if (isSpecialCase) {
+            let s1 = Math.floor(Math.random() * 4);      
+            let s2 = Math.floor(Math.random() * 5) + 5;   
+            num1 = (p * 10) + s1;
+            num2 = (Math.floor(Math.random() * (p - 1)) + 1) * 10 + s2;
+          } else {
+            let s1 = Math.floor(Math.random() * 5) + 4;   
+            let s2 = Math.floor(Math.random() * 4);      
+            num1 = (p * 10) + s1;
+            num2 = (Math.floor(Math.random() * (p - 1)) + 1) * 10 + s2;
+          }
+          currentAns = num1 - num2;
+        }
+
+        document.getElementById('quiz-question').innerText = `${num1} ${currentOperator} ${num2} =`;
+      } else {
+        showResults();
+      }
+    }
+
+    function checkAnswer() {
+      let inputVal = document.getElementById('user-answer').value;
+      if (inputVal === "") return;
+
+      let input = parseInt(inputVal);
+      let feedback = document.getElementById('feedback');
+
+      if (input === currentAns) {
+        score++;
+        feedback.style.color = "#16a34a";
+        // PUJIAN KHAS SEBUT NAMA
+        feedback.innerText = `TAHNIAH ${playerName}! BETUL! 🎉`;
+        gsap.fromTo("#feedback", {scale: 0.5}, {scale: 1, duration: 0.3});
+        setTimeout(nextQuestion, 1300);
+      } else {
+        feedback.style.color = "#ef4444";
+        
+        if (currentOperator === '+') {
+          feedback.innerText = `SALAH ${playerName}! Ini soalan TAMBAH (+). Jawapan: ${currentAns}`;
+        } else if (currentOperator === '-' && !isSpecialCase) {
+          feedback.innerText = `SALAH ${playerName}! Nombor atas besar, TAK PERLU pinjam! Jawapan: ${currentAns}`;
+        } else {
+          feedback.innerText = `SALAH ${playerName}! Ini kena pinjam dari Puluh. Jawapan: ${currentAns}`;
+        }
+        
+        setTimeout(nextQuestion, 3200);
+      }
+    }
+
+    document.getElementById("user-answer").addEventListener("keyup", function(event) {
+      if (event.key === "Enter") {
+        checkAnswer();
+      }
+    });
+
+    function showResults() {
+      document.getElementById('quiz-section').style.display = "none";
+      document.getElementById('result-section').style.display = "block";
+      document.getElementById('title').innerText = "Keputusan Final!";
+
+      let percentage = (score / totalQuestions) * 100;
+      document.getElementById('final-percentage').innerText = `${percentage}%`;
+
+      let starDisplay = document.getElementById('star-display');
+      let msg = document.getElementById('final-msg');
+
+      if (percentage === 100) {
+        starDisplay.innerText = "⭐⭐⭐";
+        msg.innerText = `PERFECT 100%! ${playerName} GENIUS MATEMATIK! 🏆`;
+      } else if (percentage >= 70) {
+        starDisplay.innerText = "⭐⭐☆";
+        msg.innerText = `Bagus sangat ${playerName}! Sikit lagi nak dapat 100%! 👍`;
+      } else {
+        starDisplay.innerText = "⭐☆☆";
+        msg.innerText = `Teruskan latihan ${playerName}, pasti boleh dapat 100%! 💪`;
+      }
+    }
+
+    function goHome() {
+      document.getElementById('result-section').style.display = "none";
+      document.getElementById('title').innerText = "Detektif Matematik! 🔍";
+      document.getElementById('instruction').innerText = "Masukkan nama & pilih mod permainan:";
+      document.getElementById('instruction').style.display = "block";
+      document.getElementById('mode-menu').style.display = "block";
+    }
+  </script>
+</body>
+</html>
