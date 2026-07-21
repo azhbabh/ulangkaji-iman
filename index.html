@@ -5,9 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Game Matematik Iman Syaddad</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: 'Comic Sans MS', 'Arial', sans-serif;
+      font-family: 'Comic Sans MS', 'Comic Neue', 'Chalkboard SE', 'Arial', sans-serif;
       background-color: #f0fdf4;
       display: flex;
       flex-direction: column;
@@ -89,6 +91,14 @@
       top: -25px;
     }
 
+    .temp-num {
+      color: #f97316;
+      font-size: 22px;
+      position: absolute;
+      top: 38px;
+      left: 5px;
+    }
+
     .line {
       grid-column: span 3;
       border-bottom: 4px solid #333;
@@ -105,6 +115,11 @@
       border-radius: 12px;
       cursor: pointer;
       margin-top: 15px;
+    }
+
+    button.btn-action:disabled {
+      background-color: #9ca3af;
+      cursor: not-allowed;
     }
 
     input.input-box {
@@ -135,6 +150,66 @@
       color: #16a34a;
       margin: 10px 0;
     }
+
+    #instruction {
+      min-height: 42px;
+      transition: none;
+    }
+
+    /* Kad ganjaran gaya flip Quizizz - guna teks & emoji sahaja */
+    .card-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .flip-card {
+      perspective: 1000px;
+      width: 170px;
+      height: 235px;
+    }
+
+    .flip-card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.7s cubic-bezier(0.4, 0.2, 0.2, 1);
+      transform-style: preserve-3d;
+    }
+
+    .flip-card-inner.flipped {
+      transform: rotateY(180deg);
+    }
+
+    .flip-card-front, .flip-card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+      border: 4px solid rgba(255,255,255,0.55);
+      text-align: center;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+
+    .flip-card-front {
+      background: linear-gradient(160deg, #6d28d9, #1e1b4b);
+    }
+
+    .flip-card-back {
+      transform: rotateY(180deg);
+    }
   </style>
 </head>
 <body>
@@ -162,17 +237,18 @@
 
         <div></div>
         <div style="position: relative;">
-          <span id="p-new" class="new-num" style="opacity:0; left:25px;">2</span>
-          <span id="num-p3">3</span>
+          <span id="p-indicator" class="new-num" style="opacity:0; left:25px;"></span>
+          <span id="num-p-top">3</span>
         </div>
         <div style="position: relative;">
-          <span id="s-new" class="new-num" style="opacity:0; left:15px;">15</span>
-          <span id="num-s5">5</span>
+          <span id="s-indicator" class="new-num" style="opacity:0; left:15px;"></span>
+          <span id="temp-s" class="temp-num" style="opacity:0;">12</span>
+          <span id="num-s-top">5</span>
         </div>
 
-        <div>-</div>
-        <div>2</div>
-        <div>6</div>
+        <div id="op-symbol">-</div>
+        <div id="num-p-bottom">2</div>
+        <div id="num-s-bottom">6</div>
 
         <div class="line"></div>
 
@@ -181,7 +257,7 @@
         <div id="ans-s" style="opacity:0;">9</div>
       </div>
 
-      <button id="main-btn" class="btn-action" onclick="startDemo()">Tunjukkan Contoh (35 - 26)</button>
+      <button id="main-btn" class="btn-action" onclick="startDemo()">Tunjukkan Contoh</button>
     </div>
 
     <!-- SKRIN 3: KUIZ 10 SOALAN -->
@@ -192,10 +268,45 @@
       </div>
 
       <p id="quiz-question" style="font-size: 38px; font-weight: bold; color: #333; margin: 15px 0;"></p>
-      <input type="number" id="user-answer" class="input-box" placeholder="?" autofocus>
+      <input type="number" id="user-answer" class="input-box" placeholder="?" autofocus min="0" step="1" inputmode="numeric" pattern="[0-9]*">
       <br>
-      <button class="btn-action" onclick="checkAnswer()">Hantar Jawapan</button>
+      <button id="submit-btn" class="btn-action" onclick="checkAnswer()">Hantar Jawapan</button>
       <p id="feedback" style="font-size: 16px; font-weight: bold; min-height: 45px; margin-top: 15px;"></p>
+
+      <!-- Ditunjukkan bila jawapan SALAH: jalan kerja betul, sama macam demo -->
+      <div id="quiz-working" style="display:none;">
+        <p style="font-size:14px;color:#6b21a8;font-weight:bold;margin:10px 0 4px;">Jalan kerja betul:</p>
+        <div class="math-grid" id="quiz-math-box">
+          <div></div>
+          <div class="header-label">Puluh</div>
+          <div class="header-label">Sa</div>
+
+          <div></div>
+          <div style="position: relative;">
+            <span id="q-p-indicator" class="new-num" style="opacity:0; left:25px;"></span>
+            <span id="q-num-p-top">0</span>
+          </div>
+          <div style="position: relative;">
+            <span id="q-s-indicator" class="new-num" style="opacity:0; left:15px;"></span>
+            <span id="q-temp-s" class="temp-num" style="opacity:0;"></span>
+            <span id="q-num-s-top">0</span>
+          </div>
+
+          <div id="q-op-symbol">-</div>
+          <div id="q-num-p-bottom">0</div>
+          <div id="q-num-s-bottom">0</div>
+
+          <div class="line"></div>
+
+          <div></div>
+          <div id="q-ans-p" style="opacity:0;">0</div>
+          <div id="q-ans-s" style="opacity:0;">0</div>
+        </div>
+        <p id="working-instr" style="font-size:14px; color:#555; min-height:38px; margin: 6px 0;"></p>
+        <button class="btn-action" id="next-q-btn" style="display:none;" onclick="proceedAfterWorking()">Soalan Seterusnya ➡️</button>
+      </div>
+
+      <button class="btn-action" style="background-color: #9ca3af; font-size: 13px; padding: 8px 16px; margin-top: 0;" onclick="exitQuiz()">⬅️ Keluar / Tukar Mod</button>
     </div>
 
     <!-- SKRIN 4: KEPUTUSAN FINAL -->
@@ -208,6 +319,25 @@
     </div>
   </div>
 
+  <!-- KAD GANJARAN - flip page gaya Quizizz, muncul bila jawapan BETUL -->
+  <div id="card-modal" class="card-modal-backdrop">
+    <div>
+      <div class="flip-card">
+        <div class="flip-card-inner" id="flip-card-inner">
+          <div class="flip-card-front">
+            <div style="font-size:42px;">🎴</div>
+            <div style="font-size:14px; margin-top:8px; font-weight:bold;">Kad Misteri...</div>
+          </div>
+          <div class="flip-card-back" id="flip-card-back">
+            <div id="card-emoji" style="font-size:46px;"></div>
+            <div id="card-name" style="font-size:15px; margin-top:8px; font-weight:bold;"></div>
+          </div>
+        </div>
+      </div>
+      <p id="card-caption" style="color:white; text-align:center; margin-top:16px; font-weight:bold; font-size:16px;"></p>
+    </div>
+  </div>
+
   <script>
     let playerName = "Iman Syaddad";
     let currentAns = 0;
@@ -217,6 +347,30 @@
     let selectedMode = 'mix';
     let currentOperator = '-';
     let isSpecialCase = false;
+    let currentNum1 = 0;
+    let currentNum2 = 0;
+
+    // Set kad ganjaran - teks & emoji sahaja (bukan artwork rasmi BoBoiBoy)
+    const CARD_POOL = [
+      { name: "BoBoiBoy Api",      emoji: "🔥", color: "#ef4444" },
+      { name: "BoBoiBoy Ais",      emoji: "❄️", color: "#0ea5e9" },
+      { name: "BoBoiBoy Petir",    emoji: "⚡", color: "#a855f7" },
+      { name: "BoBoiBoy Taufan",   emoji: "🌪️", color: "#22c55e" },
+      { name: "BoBoiBoy Gempa",    emoji: "🪨", color: "#92400e" },
+      { name: "BoBoiBoy Blaze",    emoji: "🔥✨", color: "#f97316" },
+      { name: "BoBoiBoy Ice",      emoji: "🧊", color: "#0284c7" },
+      { name: "BoBoiBoy Thorn",    emoji: "🌿", color: "#16a34a" },
+      { name: "BoBoiBoy Solar",    emoji: "☀️", color: "#eab308" },
+      { name: "BoBoiBoy Cyclone",  emoji: "🌀", color: "#0891b2" },
+      { name: "Gopal",             emoji: "🍫", color: "#78350f" },
+      { name: "Yaya",              emoji: "🥞", color: "#ec4899" },
+      { name: "Ying",              emoji: "⏱️", color: "#7c3aed" },
+      { name: "Fang",              emoji: "🐺", color: "#4b5563" },
+      { name: "Ochobot",           emoji: "🤖", color: "#d97706" }
+    ];
+
+    let demoQueue = [];
+    let demoIdx = 0;
 
     function selectMode(mode) {
       // Ambil nama dari kotak input
@@ -227,38 +381,223 @@
 
       selectedMode = mode;
       document.getElementById('mode-menu').style.display = "none";
-      
-      if (mode === 'plus') {
-        showQuiz();
+      document.getElementById('demo-section').style.display = "block";
+      document.getElementById('instruction').style.display = "block";
+
+      // Susun atur demo ikut mod. Mod tolak & campur kini ada 2 kes tolak:
+      // satu perlu pinjam, satu lagi tak perlu pinjam.
+      if (mode === 'minus') {
+        demoQueue = ['minus-borrow', 'minus-noborrow'];
+        document.getElementById('instruction').innerText = "Tekan butang untuk lihat contoh tolak:";
+      } else if (mode === 'plus') {
+        demoQueue = ['plus-carry'];
+        document.getElementById('instruction').innerText = "Tekan butang untuk lihat contoh tambah:";
       } else {
-        document.getElementById('demo-section').style.display = "block";
+        demoQueue = ['minus-borrow', 'minus-noborrow', 'plus-carry'];
+        document.getElementById('instruction').innerText = "Mod Campur: kita mula dengan contoh tolak dulu.";
+      }
+      demoIdx = 0;
+
+      // PENTING: sentiasa reset butang & onclick di sini, supaya bila pemain
+      // main "Main Lagi" dan pilih mod semula, demo TIDAK dilangkau terus ke kuiz.
+      const btn = document.getElementById('main-btn');
+      btn.disabled = false;
+      btn.onclick = startDemo;
+      btn.innerText = demoLabel(demoQueue[0]);
+      setupDemoBoard(demoQueue[0]);
+    }
+
+    function demoLabel(kind) {
+      if (kind === 'minus-borrow') return "Tunjukkan Contoh (35 - 26)";
+      if (kind === 'minus-noborrow') return "Tunjukkan Contoh (58 - 23)";
+      return "Tunjukkan Contoh (27 + 15)";
+    }
+
+    // Tetapkan/reset papan demo sepenuhnya (nombor + warna + coretan + opacity).
+    // Ini betulkan bug di mana animasi lama "melekat" bila demo dimainkan kali kedua.
+    function setupDemoBoard(kind) {
+      const pIndicator = document.getElementById('p-indicator');
+      const sIndicator = document.getElementById('s-indicator');
+      const tempS = document.getElementById('temp-s');
+      const ansP = document.getElementById('ans-p');
+      const ansS = document.getElementById('ans-s');
+      const numPTop = document.getElementById('num-p-top');
+      const numSTop = document.getElementById('num-s-top');
+
+      gsap.killTweensOf([pIndicator, sIndicator, tempS, ansP, ansS, numPTop, numSTop]);
+      gsap.set([pIndicator, sIndicator, tempS, ansP, ansS], { opacity: 0, scale: 1 });
+      numPTop.classList.remove('strike');
+      numSTop.classList.remove('strike');
+      numPTop.style.color = "";
+      numSTop.style.color = "";
+      pIndicator.innerText = "";
+      sIndicator.innerText = "";
+      tempS.innerText = "";
+
+      if (kind === 'minus-borrow') {
+        document.getElementById('op-symbol').innerText = "-";
+        numPTop.innerText = "3";
+        numSTop.innerText = "5";
+        document.getElementById('num-p-bottom').innerText = "2";
+        document.getElementById('num-s-bottom').innerText = "6";
+        ansP.innerText = "0";
+        ansS.innerText = "9";
+        pIndicator.innerText = "2";
+        sIndicator.innerText = "15";
+      } else if (kind === 'minus-noborrow') {
+        document.getElementById('op-symbol').innerText = "-";
+        numPTop.innerText = "5";
+        numSTop.innerText = "8";
+        document.getElementById('num-p-bottom').innerText = "2";
+        document.getElementById('num-s-bottom').innerText = "3";
+        ansP.innerText = "3";
+        ansS.innerText = "5";
+      } else { // plus-carry
+        document.getElementById('op-symbol').innerText = "+";
+        numPTop.innerText = "2";
+        numSTop.innerText = "7";
+        document.getElementById('num-p-bottom').innerText = "1";
+        document.getElementById('num-s-bottom').innerText = "5";
+        ansP.innerText = "4";
+        ansS.innerText = "2";
+        pIndicator.innerText = "1";
+        tempS.innerText = "12";
       }
     }
 
     function startDemo() {
-      const btn = document.getElementById('main-btn');
-      btn.disabled = true;
-      document.getElementById('instruction').innerText = "35 - 26: Nombor 5 kecil dari 6, KENA PINJAM dari Puluh!";
+      const kind = demoQueue[demoIdx];
+      const runFn = kind === 'plus-carry' ? runPlusDemo
+                  : kind === 'minus-borrow' ? runMinusBorrowDemo
+                  : runMinusNoBorrowDemo;
 
-      let tl = gsap.timeline({
-        onComplete: () => {
+      runFn(() => {
+        demoIdx++;
+        if (demoIdx < demoQueue.length) {
+          setupDemoBoard(demoQueue[demoIdx]);
+          const btn = document.getElementById('main-btn');
           btn.disabled = false;
-          btn.innerText = "Mula Soalan Latihan! 🚀";
-          btn.onclick = showQuiz;
-          document.getElementById('instruction').innerText = `Sedia ${playerName}? Perhatikan SIMBOL (+ atau -) dulu!`;
+          btn.innerText = "Seterusnya: " + demoLabel(demoQueue[demoIdx]) + " ➡️";
+          btn.onclick = startDemo;
+        } else {
+          finishDemos();
         }
       });
+    }
 
-      tl.to("#num-p3", { duration: 0.5, color: "#ef4444" })
-        .to("#num-p3", { duration: 0.3, classList: "strike" })
-        .to("#p-new", { duration: 0.5, opacity: 1, y: 5 })
-        .to("#num-s5", { duration: 0.5, color: "#ef4444" })
-        .to("#num-s5", { duration: 0.3, classList: "strike" })
-        .to("#s-new", { duration: 0.5, opacity: 1, y: 5 })
-        .to("#ans-s", { duration: 0.8, opacity: 1, color: "#16a34a", scale: 1.2 })
-        .to("#ans-s", { duration: 0.2, scale: 1 })
-        .to("#ans-p", { duration: 0.8, opacity: 1, color: "#16a34a", scale: 1.2 })
-        .to("#ans-p", { duration: 0.2, scale: 1 });
+    function finishDemos() {
+      const btn = document.getElementById('main-btn');
+      btn.disabled = false;
+      btn.innerText = "Mula Soalan Latihan! 🚀";
+      btn.onclick = showQuiz;
+      document.getElementById('instruction').innerText = `Sedia ${playerName}? Perhatikan SIMBOL (+ atau -) dulu!`;
+    }
+
+    function runMinusBorrowDemo(onDone) {
+      const btn = document.getElementById('main-btn');
+      const instr = document.getElementById('instruction');
+      btn.disabled = true;
+      instr.innerText = "Mari lihat: 35 - 26";
+
+      let tl = gsap.timeline({ onComplete: onDone });
+
+      // Langkah 1: kenal pasti masalah di lajur Sa (5 tak cukup tolak 6)
+      tl.call(() => { instr.innerText = "Lajur Sa: 5 kecil dari 6. Tak boleh tolak terus!"; })
+        .to({}, { duration: 1.6 }) // jeda supaya kanak-kanak sempat baca
+        .to("#num-p-top", { duration: 1.0, color: "#ef4444" })
+
+        // Langkah 2: pinjam dari Puluh
+        .call(() => { instr.innerText = "Kita PINJAM 1 dari lajur Puluh (3 jadi 2)."; })
+        .to("#num-p-top", { duration: 0.6, onStart: () => document.getElementById('num-p-top').classList.add('strike') })
+        .to("#p-indicator", { duration: 1.0, opacity: 1, y: 5 })
+        .to({}, { duration: 1.2 })
+
+        // Langkah 3: 5 jadi 15 di lajur Sa
+        .call(() => { instr.innerText = "1 yang dipinjam jadi 10, digabung dgn 5 = 15."; })
+        .to("#num-s-top", { duration: 1.0, color: "#ef4444" })
+        .to("#num-s-top", { duration: 0.6, onStart: () => document.getElementById('num-s-top').classList.add('strike') })
+        .to("#s-indicator", { duration: 1.0, opacity: 1, y: 5 })
+        .to({}, { duration: 1.4 })
+
+        // Langkah 4: kira lajur Sa dahulu (15 - 6 = 9)
+        .call(() => { instr.innerText = "Sekarang kira: 15 - 6 = 9"; })
+        .to("#ans-s", { duration: 1.2, opacity: 1, color: "#16a34a", scale: 1.2 })
+        .to("#ans-s", { duration: 0.3, scale: 1 })
+        .to({}, { duration: 1.4 })
+
+        // Langkah 5: kira lajur Puluh (2 - 2 = 0)
+        .call(() => { instr.innerText = "Kemudian kira: 2 - 2 = 0"; })
+        .to("#ans-p", { duration: 1.2, opacity: 1, color: "#16a34a", scale: 1.2 })
+        .to("#ans-p", { duration: 0.3, scale: 1 })
+        .to({}, { duration: 1.4 })
+
+        // Langkah 6: jawapan akhir
+        .call(() => { instr.innerText = "Jawapan akhir: 35 - 26 = 09"; })
+        .to({}, { duration: 1.6 });
+    }
+
+    function runMinusNoBorrowDemo(onDone) {
+      const btn = document.getElementById('main-btn');
+      const instr = document.getElementById('instruction');
+      btn.disabled = true;
+      instr.innerText = "Sekarang contoh lain: 58 - 23";
+
+      let tl = gsap.timeline({ onComplete: onDone });
+
+      // Langkah 1: kenal pasti lajur Sa TIDAK perlu pinjam
+      tl.call(() => { instr.innerText = "Lajur Sa: 8 lebih besar dari 3. Boleh tolak terus!"; })
+        .to({}, { duration: 1.6 })
+        .call(() => { instr.innerText = "Kali ini TAK PERLU pinjam dari Puluh."; })
+        .to({}, { duration: 1.6 })
+
+        // Langkah 2: kira lajur Sa (8 - 3 = 5)
+        .call(() => { instr.innerText = "Kira lajur Sa: 8 - 3 = 5"; })
+        .to("#ans-s", { duration: 1.2, opacity: 1, color: "#16a34a", scale: 1.2 })
+        .to("#ans-s", { duration: 0.3, scale: 1 })
+        .to({}, { duration: 1.4 })
+
+        // Langkah 3: kira lajur Puluh (5 - 2 = 3)
+        .call(() => { instr.innerText = "Kira lajur Puluh: 5 - 2 = 3"; })
+        .to("#ans-p", { duration: 1.2, opacity: 1, color: "#16a34a", scale: 1.2 })
+        .to("#ans-p", { duration: 0.3, scale: 1 })
+        .to({}, { duration: 1.4 })
+
+        // Langkah 4: jawapan akhir
+        .call(() => { instr.innerText = "Jawapan akhir: 58 - 23 = 35"; })
+        .to({}, { duration: 1.6 });
+    }
+
+    function runPlusDemo(onDone) {
+      const btn = document.getElementById('main-btn');
+      const instr = document.getElementById('instruction');
+      btn.disabled = true;
+      instr.innerText = "Mari lihat: 27 + 15";
+
+      let tl = gsap.timeline({ onComplete: onDone });
+
+      // Langkah 1: kenal pasti lajur Sa melebihi 9
+      tl.call(() => { instr.innerText = "Lajur Sa: 7 + 5 = 12. Lebih dari 9!"; })
+        .to({}, { duration: 1.6 })
+        .to("#temp-s", { duration: 1.0, opacity: 1 })
+        .to({}, { duration: 1.4 })
+
+        // Langkah 2: simpan 1 ke Puluh, tulis 2 di Sa
+        .call(() => { instr.innerText = "Kita SIMPAN angka 1 ke lajur Puluh, tulis 2 di Sa."; })
+        .to("#temp-s", { duration: 0.8, opacity: 0 })
+        .to("#p-indicator", { duration: 1.0, opacity: 1, color: "#16a34a", y: 5 })
+        .to("#ans-s", { duration: 1.0, opacity: 1, color: "#16a34a", scale: 1.2 })
+        .to("#ans-s", { duration: 0.3, scale: 1 })
+        .to({}, { duration: 1.4 })
+
+        // Langkah 3: kira lajur Puluh (2 + 1 + simpanan 1 = 4)
+        .call(() => { instr.innerText = "Lajur Puluh: 2 + 1 + 1 (simpanan) = 4"; })
+        .to("#ans-p", { duration: 1.2, opacity: 1, color: "#16a34a", scale: 1.2 })
+        .to("#ans-p", { duration: 0.3, scale: 1 })
+        .to({}, { duration: 1.4 })
+
+        // Langkah 4: jawapan akhir
+        .call(() => { instr.innerText = "Jawapan akhir: 27 + 15 = 42"; })
+        .to({}, { duration: 1.6 });
     }
 
     function showQuiz() {
@@ -267,6 +606,14 @@
       document.getElementById('title').innerText = "Cabaran Matematik";
       document.getElementById('instruction').style.display = "none";
       document.getElementById('quiz-section').style.display = "block";
+
+      // Reset paparan (jaga-jaga jika sesi lepas ditinggalkan semasa jalan kerja ditayang)
+      document.getElementById('quiz-question').style.display = "block";
+      document.getElementById('user-answer').style.display = "inline-block";
+      document.getElementById('submit-btn').style.display = "inline-block";
+      document.getElementById('quiz-working').style.display = "none";
+      document.getElementById('next-q-btn').style.display = "none";
+      document.getElementById('card-modal').style.display = "none";
 
       currentQuestion = 0;
       score = 0;
@@ -314,6 +661,8 @@
         }
 
         document.getElementById('quiz-question').innerText = `${num1} ${currentOperator} ${num2} =`;
+        currentNum1 = num1;
+        currentNum2 = num2;
       } else {
         showResults();
       }
@@ -323,36 +672,226 @@
       let inputVal = document.getElementById('user-answer').value;
       if (inputVal === "") return;
 
-      let input = parseInt(inputVal);
+      let input = parseInt(inputVal, 10);
+      if (isNaN(input) || input < 0) {
+        document.getElementById('user-answer').value = '';
+        return;
+      }
       let feedback = document.getElementById('feedback');
 
       if (input === currentAns) {
         score++;
         feedback.style.color = "#16a34a";
         // PUJIAN KHAS SEBUT NAMA
-        feedback.innerText = `TAHNIAH ${playerName}! BETUL! 🎉`;
+        feedback.innerText = `✅ TAHNIAH ${playerName}! BETUL! 🎉`;
         gsap.fromTo("#feedback", {scale: 0.5}, {scale: 1, duration: 0.3});
-        setTimeout(nextQuestion, 1300);
+        showRewardCard(() => { setTimeout(nextQuestion, 300); });
       } else {
         feedback.style.color = "#ef4444";
-        
-        if (currentOperator === '+') {
-          feedback.innerText = `SALAH ${playerName}! Ini soalan TAMBAH (+). Jawapan: ${currentAns}`;
-        } else if (currentOperator === '-' && !isSpecialCase) {
-          feedback.innerText = `SALAH ${playerName}! Nombor atas besar, TAK PERLU pinjam! Jawapan: ${currentAns}`;
-        } else {
-          feedback.innerText = `SALAH ${playerName}! Ini kena pinjam dari Puluh. Jawapan: ${currentAns}`;
-        }
-        
-        setTimeout(nextQuestion, 3200);
+        feedback.innerText = `❌ SALAH ${playerName}! Jawapan sebenar: ${currentAns}. Jom lihat jalan kerjanya:`;
+        showWorkingDemo();
       }
     }
+
+    // Papar kad ganjaran gaya "flip page" (macam Quizizz) - kad rawak setiap
+    // kali jawapan betul. Guna teks & emoji sahaja, bukan artwork rasmi.
+    function showRewardCard(onDone) {
+      const card = CARD_POOL[Math.floor(Math.random() * CARD_POOL.length)];
+
+      document.getElementById('card-emoji').innerText = card.emoji;
+      document.getElementById('card-name').innerText = card.name;
+      document.getElementById('card-caption').innerText = `🎉 ${playerName} DAPAT KAD BOBOIBOY!`;
+      document.getElementById('flip-card-back').style.background =
+        `linear-gradient(160deg, ${card.color}, #111827)`;
+
+      const inner = document.getElementById('flip-card-inner');
+      inner.classList.remove('flipped');
+      void inner.offsetWidth; // paksa reflow supaya animasi flip start dari kad tertutup
+
+      const modal = document.getElementById('card-modal');
+      modal.style.display = "flex";
+
+      setTimeout(() => { inner.classList.add('flipped'); }, 200);
+
+      setTimeout(() => {
+        modal.style.display = "none";
+        if (onDone) onDone();
+      }, 2600);
+    }
+
+    // Sembunyikan soalan & papar papan "jalan kerja betul" (macam demo) guna
+    // nombor SEBENAR soalan ini, supaya kanak-kanak nampak langkah sebenar.
+    function showWorkingDemo() {
+      document.getElementById('quiz-question').style.display = "none";
+      document.getElementById('user-answer').style.display = "none";
+      document.getElementById('submit-btn').style.display = "none";
+      document.getElementById('next-q-btn').style.display = "none";
+      document.getElementById('quiz-working').style.display = "block";
+
+      runWorkingDemo(currentNum1, currentNum2, currentOperator, () => {
+        document.getElementById('next-q-btn').style.display = "inline-block";
+      });
+    }
+
+    function proceedAfterWorking() {
+      document.getElementById('quiz-working').style.display = "none";
+      document.getElementById('quiz-question').style.display = "block";
+      document.getElementById('user-answer').style.display = "inline-block";
+      document.getElementById('submit-btn').style.display = "inline-block";
+      nextQuestion();
+    }
+
+    // Animasi jalan kerja generik - berfungsi untuk SEBARANG dua nombor & operator,
+    // secara automatik kesan sama ada perlu pinjam (tolak) atau simpan (tambah).
+    function runWorkingDemo(num1, num2, operator, onDone) {
+      const instr = document.getElementById('working-instr');
+      const qP = document.getElementById('q-num-p-top');
+      const qS = document.getElementById('q-num-s-top');
+      const qPB = document.getElementById('q-num-p-bottom');
+      const qSB = document.getElementById('q-num-s-bottom');
+      const qOp = document.getElementById('q-op-symbol');
+      const qAnsP = document.getElementById('q-ans-p');
+      const qAnsS = document.getElementById('q-ans-s');
+      const qPInd = document.getElementById('q-p-indicator');
+      const qSInd = document.getElementById('q-s-indicator');
+      const qTempS = document.getElementById('q-temp-s');
+
+      gsap.killTweensOf([qP, qS, qAnsP, qAnsS, qPInd, qSInd, qTempS]);
+      gsap.set([qAnsP, qAnsS, qPInd, qSInd, qTempS], { opacity: 0, scale: 1 });
+      qP.classList.remove('strike');
+      qS.classList.remove('strike');
+      qP.style.color = "";
+      qS.style.color = "";
+      qPInd.innerText = "";
+      qSInd.innerText = "";
+      qTempS.innerText = "";
+
+      let p1 = Math.floor(num1 / 10), s1 = num1 % 10;
+      let p2 = Math.floor(num2 / 10), s2 = num2 % 10;
+
+      qOp.innerText = operator;
+      qP.innerText = p1;
+      qS.innerText = s1;
+      qPB.innerText = p2;
+      qSB.innerText = s2;
+
+      let tl = gsap.timeline({ onComplete: onDone });
+
+      if (operator === '+') {
+        let sSum = s1 + s2;
+        if (sSum >= 10) {
+          let onesDigit = sSum - 10;
+          let ansP = p1 + p2 + 1;
+          qAnsS.innerText = onesDigit;
+          qAnsP.innerText = ansP;
+          qPInd.innerText = "1";
+          qTempS.innerText = sSum;
+
+          tl.call(() => { instr.innerText = `Lajur Sa: ${s1} + ${s2} = ${sSum}. Lebih dari 9!`; })
+            .to({}, { duration: 1.4 })
+            .to(qTempS, { duration: 0.8, opacity: 1 })
+            .to({}, { duration: 1.2 })
+            .call(() => { instr.innerText = `Simpan 1 ke Puluh, tulis ${onesDigit} di Sa.`; })
+            .to(qTempS, { duration: 0.6, opacity: 0 })
+            .to(qPInd, { duration: 0.8, opacity: 1, color: "#16a34a", y: 5 })
+            .to(qAnsS, { duration: 0.8, opacity: 1, color: "#16a34a", scale: 1.2 })
+            .to(qAnsS, { duration: 0.2, scale: 1 })
+            .to({}, { duration: 1.2 })
+            .call(() => { instr.innerText = `Lajur Puluh: ${p1} + ${p2} + 1 (simpanan) = ${ansP}`; })
+            .to(qAnsP, { duration: 1.0, opacity: 1, color: "#16a34a", scale: 1.2 })
+            .to(qAnsP, { duration: 0.2, scale: 1 })
+            .to({}, { duration: 1.2 })
+            .call(() => { instr.innerText = `Jawapan akhir: ${num1} + ${num2} = ${num1 + num2}`; })
+            .to({}, { duration: 1.4 });
+        } else {
+          let ansP = p1 + p2;
+          qAnsS.innerText = sSum;
+          qAnsP.innerText = ansP;
+
+          tl.call(() => { instr.innerText = `Lajur Sa: ${s1} + ${s2} = ${sSum}. Tak lebih 9, terus tulis.`; })
+            .to({}, { duration: 1.4 })
+            .to(qAnsS, { duration: 1.0, opacity: 1, color: "#16a34a", scale: 1.2 })
+            .to(qAnsS, { duration: 0.2, scale: 1 })
+            .to({}, { duration: 1.2 })
+            .call(() => { instr.innerText = `Lajur Puluh: ${p1} + ${p2} = ${ansP}`; })
+            .to(qAnsP, { duration: 1.0, opacity: 1, color: "#16a34a", scale: 1.2 })
+            .to(qAnsP, { duration: 0.2, scale: 1 })
+            .to({}, { duration: 1.2 })
+            .call(() => { instr.innerText = `Jawapan akhir: ${num1} + ${num2} = ${num1 + num2}`; })
+            .to({}, { duration: 1.4 });
+        }
+      } else {
+        if (s1 < s2) {
+          let newP1 = p1 - 1;
+          let newS1 = s1 + 10;
+          let ansS = newS1 - s2;
+          let ansP = newP1 - p2;
+          qPInd.innerText = newP1;
+          qSInd.innerText = newS1;
+          qAnsS.innerText = ansS;
+          qAnsP.innerText = ansP;
+
+          tl.call(() => { instr.innerText = `Lajur Sa: ${s1} kecil dari ${s2}. Tak boleh tolak terus!`; })
+            .to({}, { duration: 1.4 })
+            .to(qP, { duration: 0.8, color: "#ef4444" })
+            .call(() => { instr.innerText = `Kita PINJAM 1 dari Puluh (${p1} jadi ${newP1}).`; })
+            .to(qP, { duration: 0.5, onStart: () => qP.classList.add('strike') })
+            .to(qPInd, { duration: 0.8, opacity: 1, y: 5 })
+            .to({}, { duration: 1.0 })
+            .call(() => { instr.innerText = `1 yang dipinjam jadi 10, digabung dgn ${s1} = ${newS1}.`; })
+            .to(qS, { duration: 0.8, color: "#ef4444" })
+            .to(qS, { duration: 0.5, onStart: () => qS.classList.add('strike') })
+            .to(qSInd, { duration: 0.8, opacity: 1, y: 5 })
+            .to({}, { duration: 1.2 })
+            .call(() => { instr.innerText = `Kira: ${newS1} - ${s2} = ${ansS}`; })
+            .to(qAnsS, { duration: 1.0, opacity: 1, color: "#16a34a", scale: 1.2 })
+            .to(qAnsS, { duration: 0.2, scale: 1 })
+            .to({}, { duration: 1.2 })
+            .call(() => { instr.innerText = `Kira: ${newP1} - ${p2} = ${ansP}`; })
+            .to(qAnsP, { duration: 1.0, opacity: 1, color: "#16a34a", scale: 1.2 })
+            .to(qAnsP, { duration: 0.2, scale: 1 })
+            .to({}, { duration: 1.2 })
+            .call(() => { instr.innerText = `Jawapan akhir: ${num1} - ${num2} = ${num1 - num2}`; })
+            .to({}, { duration: 1.4 });
+        } else {
+          let ansS = s1 - s2;
+          let ansP = p1 - p2;
+          qAnsS.innerText = ansS;
+          qAnsP.innerText = ansP;
+
+          tl.call(() => { instr.innerText = `Lajur Sa: ${s1} lebih besar dari ${s2}. Boleh tolak terus!`; })
+            .to({}, { duration: 1.4 })
+            .call(() => { instr.innerText = `Kira: ${s1} - ${s2} = ${ansS}`; })
+            .to(qAnsS, { duration: 1.0, opacity: 1, color: "#16a34a", scale: 1.2 })
+            .to(qAnsS, { duration: 0.2, scale: 1 })
+            .to({}, { duration: 1.2 })
+            .call(() => { instr.innerText = `Kira: ${p1} - ${p2} = ${ansP}`; })
+            .to(qAnsP, { duration: 1.0, opacity: 1, color: "#16a34a", scale: 1.2 })
+            .to(qAnsP, { duration: 0.2, scale: 1 })
+            .to({}, { duration: 1.2 })
+            .call(() => { instr.innerText = `Jawapan akhir: ${num1} - ${num2} = ${num1 - num2}`; })
+            .to({}, { duration: 1.4 });
+        }
+      }
+    }
+
+    document.getElementById("user-answer").addEventListener("keydown", function(event) {
+      // Sekat kekunci yang boleh hasilkan nombor negatif/perpuluhan (- + . e E)
+      if (["-", "+", ".", "e", "E"].includes(event.key)) {
+        event.preventDefault();
+      }
+    });
 
     document.getElementById("user-answer").addEventListener("keyup", function(event) {
       if (event.key === "Enter") {
         checkAnswer();
       }
     });
+
+    function exitQuiz() {
+      document.getElementById('quiz-section').style.display = "none";
+      goHome();
+    }
 
     function showResults() {
       document.getElementById('quiz-section').style.display = "none";
@@ -379,10 +918,12 @@
 
     function goHome() {
       document.getElementById('result-section').style.display = "none";
+      document.getElementById('demo-section').style.display = "none";
       document.getElementById('title').innerText = "Detektif Matematik! 🔍";
       document.getElementById('instruction').innerText = "Masukkan nama & pilih mod permainan:";
       document.getElementById('instruction').style.display = "block";
       document.getElementById('mode-menu').style.display = "block";
+      demoStep = 0;
     }
   </script>
 </body>
